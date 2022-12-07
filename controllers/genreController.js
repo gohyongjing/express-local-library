@@ -105,14 +105,74 @@ exports.genre_create_post = [
 ];
 
 // Display Genre delete form on GET.
-exports.genre_delete_get = (req, res) => {
-  res.send("NOT IMPLEMENTED: Genre delete GET");
+exports.genre_delete_get = (req, res, next) => {
+  const id = mongoose.Types.ObjectId(req.params.id);
+  async.parallel(
+    {
+      genre(callback) {
+        Genre.findById(id).exec(callback);
+      },
+
+      genre_books(callback) {
+        Book.find({ genre: id }).exec(callback);
+      },
+    },
+    (err, results) => {
+      if (err) {
+        return next(err);
+      }
+      if (results.genre == null) {
+        // No results.
+        res.redirect("/catalog/genres");
+      }
+      // Successful, so render
+      res.render("genre_delete", {
+        title: "Delete Genre",
+        genre: results.genre,
+        genre_books: results.genre_books,
+      });
+    }
+  );
 };
 
 // Handle Genre delete on POST.
-exports.genre_delete_post = (req, res) => {
-  res.send("NOT IMPLEMENTED: Genre delete POST");
-};
+exports.genre_delete_post = (req, res, next) => {
+  const id = mongoose.Types.ObjectId(req.body.genreid);
+  async.parallel(
+    {
+      genre(callback) {
+        Genre.findById(id).exec(callback);
+      },
+
+      genre_books(callback) {
+        Book.find({ genre: id }).exec(callback);
+      },
+    },
+    (err, results) => {
+      if (err) {
+        return next(err);
+      }
+      // Success
+      if (results.genre_books.length > 0) {
+        // Genre has books. Render in same way as for GET route.
+        res.render("genre_delete", {
+          title: "Delete Genre",
+          genre: results.genre,
+          genre_books: results.genre_books,
+        });
+        return;
+      }
+      // Genre has no books. Delete object and redirect to the list of genres.
+      Genre.findByIdAndRemove(id, (err) => {
+        if (err) {
+          return next(err);
+        }
+        // Success - go to genre list
+        res.redirect("/catalog/genres");
+      });
+    }
+  );
+}
 
 // Display Genre update form on GET.
 exports.genre_update_get = (req, res) => {

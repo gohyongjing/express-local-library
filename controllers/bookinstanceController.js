@@ -113,14 +113,53 @@ exports.bookinstance_create_post = [
 ];
 
 // Display BookInstance delete form on GET.
-exports.bookinstance_delete_get = (req, res) => {
-  res.send("NOT IMPLEMENTED: BookInstance delete GET");
+exports.bookinstance_delete_get = (req, res, next) => {
+  const id = mongoose.Types.ObjectId(req.params.id);
+  BookInstance.findById(id)
+    .populate("book")
+    .exec((err, bookinstance) => {
+      if (err) {
+        return next(err);
+      }
+      if (bookinstance == null) {
+        // No results.
+        res.redirect("/catalog/bookinstances");
+      }
+      // Successful, so render.
+      res.render("bookinstance_delete", {
+        title: "Delete Book Instance",
+        bookinstance,
+      });
+    });
 };
 
 // Handle BookInstance delete on POST.
-exports.bookinstance_delete_post = (req, res) => {
-  res.send("NOT IMPLEMENTED: BookInstance delete POST");
+exports.bookinstance_delete_post = (req, res, next) => {
+  const id = mongoose.Types.ObjectId(req.body.bookinstanceid);
+  BookInstance.findById(id)
+    .populate("book")
+    .exec((err, bookinstance) => {
+      if (err) {
+        return next(err);
+      }
+      if (bookinstance == null) {
+        // No results.
+        const err = new Error("Book copy not found");
+        err.status = 404;
+        return next(err);
+      }
+      // Delete object and redirect to the list of book instances.
+      BookInstance.findByIdAndRemove(id, (err) => {
+        if (err) {
+          return next(err);
+        }
+        // Success - go to book instances list
+        res.redirect("/catalog/bookinstances");
+      });
+    }
+  );
 };
+
 
 // Display BookInstance update form on GET.
 exports.bookinstance_update_get = (req, res) => {
